@@ -4,7 +4,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
+
+const saltRounds = 10;
 
 
 const app = express();
@@ -48,31 +50,31 @@ app.get('/register', (req, res) => {
 
 app.post("/register",function(req,res) {
 
+
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        const newuser = new User({
+
+            email: req.body.username,
+            password: hash
+        })
+
+         try {
+    
+                newuser.save();
+                res.render("secrets");
+            } catch (err) {
+              console.error("An error occurred. Error message:" + err.message);
+            }
+    });
   
-    const newuser = new User({
-
-        email: req.body.username,
-        password: md5(req.body.password)
-    })
-
-
-
-
-
-     try {
-
-            newuser.save();
-            res.render("secrets");
-        } catch (err) {
-          console.error("An error occurred. Error message:" + err.message);
-        }
+ 
       }
   
 );
 
 app.post("/login", function (req, res) {
     const username = req.body.username;
-    const password = md5(req.body.password);
+    const password = req.body.password;
 
 
 
@@ -80,12 +82,22 @@ app.post("/login", function (req, res) {
         User.findOne({ email: username})
         .then((user) => {
             if (user){
-                if (user.password === password){
-                    res.render("secrets");
-                }else{
-                    res.redirect("/");
-                }}
-        })
+               
+
+                                
+                bcrypt.compare(password, user.password, function(err, result) {
+                    // result == true
+                    if (result){
+     
+                        res.render("secrets");
+                    }else{
+                        res.redirect("/");
+                    }
+                });
+                  
+             
+         
+                }})
         .catch((err) => {console.log(err);});
 
 
